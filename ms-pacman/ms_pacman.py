@@ -136,7 +136,7 @@ def main():
         agent.learn_from_replay()
         agent.play()
         agent.save()
-        agent.memory.clear()
+        # agent.memory.clear()
         
 if __name__ == "__main__":
     main()
