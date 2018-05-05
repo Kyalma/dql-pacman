@@ -21,7 +21,7 @@ class MsPacman():
         self.memory = deque()
         self.observation_loops = 5
         self.batch_size = 32
-        self.learning_rate = 0.01
+        self.learning_rate = 0.001
         self.exploration_rate = 0.7
         self.explotation_rate_min = 0.1
         self.exploration_decay = 0.9
@@ -51,7 +51,10 @@ class MsPacman():
         self.model.add(Dense(5,
             activation='softmax', init='uniform'))              # Dense (Output)
         # self.model.add(Activation('softmax'))                 #  * softmax
-        self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+        self.model.compile(
+            loss='mse',
+            optimizer=Adam(lr=self.learning_rate),
+            metrics=['mae'])
 
     def load(self):
         if os.path.exists(self.weights_file):
@@ -115,8 +118,8 @@ class MsPacman():
         tot_reward = 0.0
         while not done:
             self.env.render()
-            Q = self.model.predict(state)
-            action = np.argmax(Q)       
+            q_values = self.model.predict(state)
+            action = np.argmax(q_values)
             obs_new, reward, done, _ = self.env.step(action)
             state = np.expand_dims(obs_new, axis=0)
             tot_reward += reward
