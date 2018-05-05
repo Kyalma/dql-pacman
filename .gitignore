@@ -6,3 +6,5 @@
 *.pyproj
 *.sln
 ms-pacman/.vscode/
+
+*.h5
