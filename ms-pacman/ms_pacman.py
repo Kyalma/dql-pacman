@@ -4,14 +4,14 @@
 import os
 import time
 
-from keras.models import Sequential      # One layer after the other
-from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout  # Dense layers are fully connected layers, Flatten layers flatten out multidimensional inputs
+from keras.models import Sequential
+from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout
 from keras.optimizers import Adam
-from collections import deque            # For storing moves 
+from collections import deque
 
-import random     # For sampling batches from the observations
+import random
 import numpy as np
-import gym                                # To train our network
+import gym
 
 
 class MsPacman():
