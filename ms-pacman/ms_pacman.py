@@ -28,6 +28,9 @@ class MsPacman():
         self.discount_rate = 0.9
         ## Creating the model
         self.model = Sequential()
+        self.__build_model()
+
+    def __build_model(self):
         self.model.add(Conv2D(16, (3, 3),                       # Conv 2D
             padding='same',
             input_shape=self.env.observation_space.shape))
@@ -53,6 +56,9 @@ class MsPacman():
     def load(self):
         if os.path.exists(self.weights_file):
             self.model.load_weights(self.weights_file)
+            print("Loaded weights file successfully")
+        else:
+            print("Weight file '{}' not found".format(self.weights_file))
 
     def save(self):
         self.model.save_weights(self.weights_file)
@@ -116,6 +122,7 @@ class MsPacman():
             tot_reward += reward
         print('Game ended! Total reward: {}'.format(tot_reward))
 
+
 def main():
     agent = MsPacman()
     agent.summary()
@@ -128,6 +135,5 @@ def main():
         agent.save()
         agent.memory.clear()
         
-
 if __name__ == "__main__":
     main()
