@@ -3,58 +3,86 @@
 
 import os
 import time
+import random
+import argparse
 
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout
+from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout, LeakyReLU
 from keras.optimizers import Adam
 from collections import deque
 
-import random
 import numpy as np
 import gym
 
 
+
 class MsPacman():
-    def __init__(self):
+    def __init__(self, model: str, weights_fp: str, render: bool):
         self.env = gym.make('MsPacman-v0')
-        self.weights_file = './ms-pacman-w.h5'
+        self.weights_file = weights_fp
+        self.render = render
         self.memory = deque()
         self.observation_loops = 5
         self.batch_size = 32
-        self.learning_rate = 0.001
-        self.exploration_rate = 0.7
-        self.explotation_rate_min = 0.1
+        self.learning_rate = 0.00025
+        self.exploration_rate = 1
+        self.explotation_rate_min = 0.05
         self.exploration_decay = 0.9
         self.discount_rate = 0.9
+        self.fitness_score = list()
         ## Creating the model
-        self.model = Sequential()
-        self.__build_model()
+        # self.model = self._build_alexnet_based_model()
+        if model == 'deepmind':
+            self.model = self._build_deepmind_model()
+        elif model == 'alexnet':
+            self.model = self._build_alexnet_based_model()
+        else:
+            raise NameError('Model not defined')
 
-    def __build_model(self):
-        self.model.add(Conv2D(16, (3, 3),                       # Conv 2D
+    def _build_alexnet_based_model(self):
+        model = Sequential()
+        model.add(Conv2D(16, (3, 3),                       # Conv 2D
             padding='same',
             input_shape=self.env.observation_space.shape))
-        self.model.add(Activation('relu'))                      #  * relu
-        self.model.add(Conv2D(32, (3, 3)))                      # Conv 2D
-        self.model.add(Activation('relu'))                      #  * relu
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))          # MaxPooling(2, 2)
-        self.model.add(Dropout(0.6))                            #  * Dropout
-        self.model.add(Conv2D(32, (3, 3), padding='same'))      # Conv2D
-        self.model.add(Activation('relu'))                      #  * relu
-        self.model.add(Conv2D(32, (3, 3)))                      # Conv2D
-        self.model.add(Activation('relu'))                      #  * relu
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))          # MaxPooling(2, 2)
-        self.model.add(Dropout(0.2))                            #  * Dropout
-        self.model.add(Flatten())                               # Flatten
-        self.model.add(Dense(512))                              # Dense
-        self.model.add(Activation('softmax'))                      #  * relu
-        self.model.add(Dense(5,
+        model.add(Activation('relu'))                      #  * relu
+        model.add(Conv2D(32, (3, 3)))                      # Conv 2D
+        model.add(Activation('relu'))                      #  * relu
+        model.add(MaxPooling2D(pool_size=(2, 2)))          # MaxPooling(2, 2)
+        model.add(Dropout(0.6))                            #  * Dropout
+        model.add(Conv2D(32, (3, 3), padding='same'))      # Conv2D
+        model.add(Activation('relu'))                      #  * relu
+        model.add(Conv2D(32, (3, 3)))                      # Conv2D
+        model.add(Activation('relu'))                      #  * relu
+        model.add(MaxPooling2D(pool_size=(2, 2)))          # MaxPooling(2, 2)
+        model.add(Dropout(0.2))                            #  * Dropout
+        model.add(Flatten())                               # Flatten
+        model.add(Dense(512))                              # Dense
+        model.add(Activation('softmax'))                      #  * relu
+        model.add(Dense(5,
             activation='softmax', init='uniform'))              # Dense (Output)
         # self.model.add(Activation('softmax'))                 #  * softmax
-        self.model.compile(
+        model.compile(
             loss='mse',
             optimizer=Adam(lr=self.learning_rate),
             metrics=['mae'])
+        return model
+
+    def _build_deepmind_model(self):
+        model = Sequential()
+        model.add(Conv2D(32, (8, 8),
+            strides=4,
+            input_shape=self.env.observation_space.shape,
+            activation='relu'))
+        model.add(Conv2D(64, (4, 4), strides=2, activation='relu'))
+        model.add(Conv2D(64, (4, 4), strides=1, activation='relu'))
+        model.add(Flatten())
+        model.add(Dense(512, activation='relu'))
+        model.add(Dense(5, activation='linear'))
+        model.compile(
+            loss='mse',
+            optimizer=Adam(lr=self.learning_rate),
+            metrics=['mae'])
+        return model
 
     def load(self):
         if os.path.exists(self.weights_file):
@@ -77,7 +105,8 @@ class MsPacman():
         state = np.expand_dims(obs, axis=0)
         print("Observing Game 1")
         while nb_games_done < self.observation_loops:
-            self.env.render()
+            if self.render:
+                self.env.render()
             if np.random.rand() <= self.exploration_rate:
                 action = np.random.randint(0, 4, size=1)[0]
             else:
@@ -115,27 +144,49 @@ class MsPacman():
         obs = self.env.reset()
         state = np.expand_dims(obs, axis=0)
         done = False
-        tot_reward = 0.0
+        tt_reward = 0.0
         while not done:
-            self.env.render()
+            if self.render:
+                self.env.render()
             q_values = self.model.predict(state)
             action = np.argmax(q_values)
             obs_new, reward, done, _ = self.env.step(action)
             state = np.expand_dims(obs_new, axis=0)
-            tot_reward += reward
-        print('Game ended! Total reward: {}'.format(tot_reward))
+            tt_reward += reward
+        self.fitness_score.append(tt_reward)
+        print('Game ended! Total reward: {}'.format(tt_reward))
 
 
 def main():
-    agent = MsPacman()
+    parser = argparse.ArgumentParser(
+        prog='ms_pacman.py',
+        description='DQN Agent that plays mspacman')
+    parser.add_argument(
+        '-r', '--render',
+        action='store_true',
+        help='render the graphical environment')
+    parser.add_argument(
+        '-w', '--weights',
+        action='store',
+        type=str,
+        help='give a path to the .h5 file to load/save',
+        default='./ms-pacman-w.h5')
+    parser.add_argument(
+        '-m', '--model',
+        action='store',
+        type=str,
+        default='deepmind',
+        help='Choose a model between alexnet and deepmind')
+    args = parser.parse_args()
+    agent = MsPacman(args.model, args.weights, args.render)
     agent.summary()
-    agent.load()
+    # agent.load()
     for iteration in range(10):
         print("Iteration {}".format(iteration))
         agent.observe()
         agent.learn_from_replay()
         agent.play()
-        agent.save()
+        # agent.save()
         # agent.memory.clear()
         
 if __name__ == "__main__":
