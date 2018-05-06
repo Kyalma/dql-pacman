@@ -75,8 +75,7 @@ class MsPacman():
 
     def _build_deepmind_model(self):
         model = Sequential()
-        model.add(Conv2D(32, (8, 8),
-            strides=4,
+        model.add(Conv2D(32, (8, 8), strides=4,
             input_shape=self.env.observation_space.shape,
             activation='relu'))
         model.add(Conv2D(64, (4, 4), strides=2, activation='relu'))
@@ -247,7 +246,7 @@ def main():
     agent.summary()
     if args.load:
         agent.load(args.load)
-    start_time = datetime.datetime.now()
+    # start_time = datetime.datetime.now()
     bar.start()
     for _ in range(agent.iterations):
         agent.observe()
@@ -256,7 +255,7 @@ def main():
         bar += 1
     bar.finish()
     end_time = datetime.datetime.now()
-    time_execution(start_time, end_time)
+    # time_execution(start_time, end_time)
     agent.draw_fitness_stats(end_time)
     agent.draw_exploration_decay(end_time)
     if args.save:
