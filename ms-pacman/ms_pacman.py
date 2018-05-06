@@ -222,8 +222,6 @@ def main():
         agent.play()
         agent.forget()
     time = datetime.datetime.now().strftime("%m%d%H%M%S")
-    print("Best observed scores : {}".format(agent.observe_fitness_score))
-    print("Play scores          : {}".format(agent.play_fitness_score))
     agent.draw_fitness_stats(time)
     if args.save:
         agent.save(time)
