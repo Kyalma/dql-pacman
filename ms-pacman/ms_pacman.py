@@ -20,23 +20,23 @@ import gym
 
 
 class MsPacman():
-    def __init__(self, model: str, learning_rate: float, weights_file_basename: str, render: bool, iterations: int):
+    def __init__(self, model: str, learning_rate: float, render: bool, iterations: int):
         self.env = gym.make('MsPacman-v0')
-        self.weights_file_basename = weights_file_basename
+        self.weights_file_basename = 'w_mspacman'
         self.render = render
         self.iterations = iterations
         self.memory = deque(maxlen=100000)
         self.observation_loops = 10
         self.batch_size = 32
         self.learning_rate = learning_rate
+        self.discount_rate = 0.9
+        self.rms_rho = 0.95
         self.exploration_rate = 1
         self.explotation_rate_min = 0.1
         self.exploration_decay = 0.95
         self.exploration_hist = list()
-        self.discount_rate = 0.9
         self.observe_fitness_score = list()
         self.play_fitness_score = list()
-        self.rms_rho = 0.95
         ## Creating the model
         if model == 'deepmind':
             self.model = self._build_deepmind_model()
@@ -198,12 +198,12 @@ def main():
         '-r', '--render',
         action='store_true',
         help='render the graphical environment')
-    parser.add_argument(
-        '-b', '--basename',
-        action='store',
-        type=str,
-        help='give a path to the .h5 file to load/save',
-        default='ms-pacman-w')
+    # parser.add_argument(
+    #     '-b', '--basename',
+    #     action='store',
+    #     type=str,
+    #     help='give a path to the .h5 file to load/save',
+    #     default='ms-pacman-w')
     parser.add_argument(
         '-m', '--model',
         action='store',
@@ -240,7 +240,7 @@ def main():
     agent = MsPacman(
         args.model,
         args.learning_rate,
-        args.basename,
+        # args.basename,
         args.render,
         args.iterations)
     agent.summary()
