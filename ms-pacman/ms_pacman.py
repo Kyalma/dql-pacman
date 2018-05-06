@@ -21,24 +21,24 @@ import gym
 
 
 class MsPacman():
-    def __init__(self, model: str, weights_file_basename: str, render: bool, iterations: int):
+    def __init__(self, model: str, learning_rate: float, weights_file_basename: str, render: bool, iterations: int):
         self.env = gym.make('MsPacman-v0')
         self.weights_file_basename = weights_file_basename
         self.render = render
         self.iterations = iterations
-        self.memory = deque()
+        self.memory = deque(maxlen=100000)
         self.observation_loops = 10
         self.batch_size = 32
-        self.learning_rate = 0.00025
+        self.learning_rate = learning_rate
         self.exploration_rate = 1
         self.explotation_rate_min = 0.1
-        self.exploration_decay = 0.997
+        self.exploration_decay = 0.95
+        self.exploration_hist = list()
         self.discount_rate = 0.9
         self.observe_fitness_score = list()
         self.play_fitness_score = list()
         self.rms_rho = 0.95
         ## Creating the model
-        # self.model = self._build_alexnet_based_model()
         if model == 'deepmind':
             self.model = self._build_deepmind_model()
         elif model == 'alexnet':
@@ -82,7 +82,7 @@ class MsPacman():
             activation='relu'))
         model.add(Conv2D(64, (4, 4), strides=2, activation='relu'))
         model.add(Conv2D(64, (4, 4), strides=1, activation='relu'))
-        model.add(Flatten())
+        model.add(Flatten())    # Important to have a 1D output
         model.add(Dense(512, activation='relu'))
         model.add(Dense(5, activation='linear'))
         model.compile(
@@ -97,8 +97,11 @@ class MsPacman():
         else:
             print("Weight file '{}' not found".format(name))
 
-    def save(self, curr_time):
-        self.model.save_weights("{}_{}it_{}.h5".format(self.weights_file_basename, self.iterations, curr_time))
+    def save(self, end_time: datetime.datetime):
+        self.model.save_weights("{}_{}it_{}.h5".format(
+            self.weights_file_basename,
+            self.iterations,
+            end_time.strftime("%m%d%H%M%S")))
 
     def summary(self) -> None:
         self.model.summary()
@@ -110,6 +113,7 @@ class MsPacman():
         obs = self.env.reset()
         state = np.expand_dims(obs, axis=0)
         best_fitness_score = 0
+        self.exploration_hist.append(self.exploration_rate)
         while nb_games_done < self.observation_loops:
             if self.render:
                 self.env.render()
@@ -164,16 +168,23 @@ class MsPacman():
             tt_reward += reward
         self.play_fitness_score.append(tt_reward)
 
-    def draw_fitness_stats(self, curr_time):
-        # plt.xticks(range(self.iterations))
-        plt.xlabel('Nb of Iterations')
+    def draw_fitness_stats(self, end_time: datetime.datetime):
+        plt.xlabel('Iteration')
         plt.ylabel('Fitness Score')
         plt.plot(self.observe_fitness_score, 'k')
         plt.plot(self.play_fitness_score, 'r')
-        plt.savefig("fitness_{}it_{}".format(self.iterations, curr_time))
+        plt.savefig("fitness_{}it_{}".format(self.iterations, end_time.strftime("%m%d%H%M%S")))
+
+    def draw_exploration_decay(self, end_time: datetime.datetime):
+        plt.clf()
+        plt.ylim(0, 1)
+        plt.plot(self.exploration_hist, 'g')
+        plt.ylabel('Exploration rate')
+        plt.xlabel('Iteration')
+        plt.savefig("exploration_{}it_{}".format(self.iterations, end_time.strftime("%m%d%H%M%S")))  
 
 
-def time_execution(start, end):
+def time_execution(start: datetime.datetime, end: datetime.datetime):
     tt_time = end - start
     hours = tt_time.days * 24 + tt_time.seconds // 3600
     minutes = (tt_time.seconds % 3600) // 60
@@ -212,14 +223,24 @@ def main():
         type=str,
         action='store',
         default=None,
-        help='Load a weight file'
-    )
+        help='Load a weight file')
     parser.add_argument(
-        "-s", "--save",
+        '-s', '--save',
         action='store_true',
         help="save the trained weights into a file 'basename+timestamp'.h5")
+    parser.add_argument(
+        '-L', '--learning-rate',
+        type=float,
+        action='store',
+        default=0.00025,
+        help='Learning rate of the optimizer')
     args = parser.parse_args()
-    agent = MsPacman(args.model, args.basename, args.render, args.iterations)
+    agent = MsPacman(
+        args.model,
+        args.learning_rate,
+        args.basename,
+        args.render,
+        args.iterations)
     agent.summary()
     if args.load:
         agent.load(args.load)
@@ -229,12 +250,12 @@ def main():
         agent.observe()
         agent.learn_from_replay()
         agent.play()
-        agent.forget()
-    time_execution(start_time, datetime.datetime.now())
-    endtime = datetime.datetime.now().strftime("%m%d%H%M%S")
-    agent.draw_fitness_stats(endtime)
+    end_time = datetime.datetime.now()
+    time_execution(start_time, end_time)
+    agent.draw_fitness_stats(end_time)
+    agent.draw_exploration_decay(end_time)
     if args.save:
-        agent.save(endtime)
+        agent.save(end_time)
         
 if __name__ == "__main__":
     main()
