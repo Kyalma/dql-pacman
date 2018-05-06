@@ -8,6 +8,7 @@ import argparse
 import datetime
 import numpy as np
 
+
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout, LeakyReLU
 from keras.optimizers import Adam, RMSprop
@@ -97,7 +98,7 @@ class MsPacman():
             print("Weight file '{}' not found".format(name))
 
     def save(self, curr_time):
-        self.model.save_weights("{}_{}_{}.h5".format(self.weights_file_basename, self.iterations, curr_time))
+        self.model.save_weights("{}_{}it_{}.h5".format(self.weights_file_basename, self.iterations, curr_time))
 
     def summary(self) -> None:
         self.model.summary()
@@ -164,13 +165,21 @@ class MsPacman():
         self.play_fitness_score.append(tt_reward)
 
     def draw_fitness_stats(self, curr_time):
-        plt.xticks(range(self.iterations))
+        # plt.xticks(range(self.iterations))
         plt.xlabel('Nb of Iterations')
         plt.ylabel('Fitness Score')
         plt.plot(self.observe_fitness_score, 'k')
         plt.plot(self.play_fitness_score, 'r')
         plt.savefig("fitness_{}it_{}".format(self.iterations, curr_time))
 
+
+def time_execution(start, end):
+    tt_time = end - start
+    hours = tt_time.days * 24 + tt_time.seconds // 3600
+    minutes = (tt_time.seconds % 3600) // 60
+    seconds = tt_time.seconds % 3600
+    mseconds = tt_time.microseconds % 1000
+    print("Execution time: {}h{}m{}.{}s".format(hours, minutes, seconds, mseconds))
 
 def main():
     parser = argparse.ArgumentParser(
@@ -209,22 +218,23 @@ def main():
         "-s", "--save",
         action='store_true',
         help="save the trained weights into a file 'basename+timestamp'.h5")
-
     args = parser.parse_args()
     agent = MsPacman(args.model, args.basename, args.render, args.iterations)
     agent.summary()
     if args.load:
         agent.load(args.load)
+    start_time = datetime.datetime.now()
     for iteration in range(agent.iterations):
         print("Iteration {}/{}".format(iteration + 1, agent.iterations))
         agent.observe()
         agent.learn_from_replay()
         agent.play()
         agent.forget()
-    time = datetime.datetime.now().strftime("%m%d%H%M%S")
-    agent.draw_fitness_stats(time)
+    time_execution(start_time, datetime.datetime.now())
+    endtime = datetime.datetime.now().strftime("%m%d%H%M%S")
+    agent.draw_fitness_stats(endtime)
     if args.save:
-        agent.save(time)
+        agent.save(endtime)
         
 if __name__ == "__main__":
     main()
