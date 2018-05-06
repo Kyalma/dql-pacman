@@ -216,7 +216,7 @@ def main():
     if args.load:
         agent.load(args.load)
     for iteration in range(agent.iterations):
-        print("Iteration {}/{}".format(iteration, agent.iterations))
+        print("Iteration {}/{}".format(iteration + 1, agent.iterations))
         agent.observe()
         agent.learn_from_replay()
         agent.play()
