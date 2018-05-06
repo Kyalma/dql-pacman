@@ -5,15 +5,16 @@ import os
 import time
 import random
 import argparse
+import numpy as np
 
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout, LeakyReLU
-from keras.optimizers import Adam
+from keras.optimizers import Adam, RMSprop
 from collections import deque
 
-import numpy as np
-import gym
+import matplotlib.plt as plt
 
+import gym
 
 
 class MsPacman():
@@ -22,14 +23,16 @@ class MsPacman():
         self.weights_file = weights_fp
         self.render = render
         self.memory = deque()
-        self.observation_loops = 5
+        self.observation_loops = 10
         self.batch_size = 32
         self.learning_rate = 0.00025
         self.exploration_rate = 1
         self.explotation_rate_min = 0.05
         self.exploration_decay = 0.9
         self.discount_rate = 0.9
-        self.fitness_score = list()
+        self.observe_fitness_score = list()
+        self.play_fitness_score = list()
+        self.rms_rho = 0.95
         ## Creating the model
         # self.model = self._build_alexnet_based_model()
         if model == 'deepmind':
@@ -80,8 +83,7 @@ class MsPacman():
         model.add(Dense(5, activation='linear'))
         model.compile(
             loss='mse',
-            optimizer=Adam(lr=self.learning_rate),
-            metrics=['mae'])
+            optimizer=RMSprop(lr=self.learning_rate, rho=self.rms_rho, decay=1e-06))
         return model
 
     def load(self):
@@ -103,7 +105,7 @@ class MsPacman():
         game_reward = 0
         obs = self.env.reset()
         state = np.expand_dims(obs, axis=0)
-        print("Observing Game 1")
+        best_fitness_score = 0
         while nb_games_done < self.observation_loops:
             if self.render:
                 self.env.render()
@@ -118,13 +120,13 @@ class MsPacman():
             self.memory.append((state, action, reward, state_new, done))    # 'Remember' action and consequence
             state = state_new                                               # Update state
             if done:
-                print("Total reward for this game: {}".format(game_reward))
                 nb_games_done += 1
+                if game_reward > best_fitness_score:
+                    best_fitness_score = game_reward
                 game_reward = 0
                 obs = self.env.reset()                                      # Restart the game
                 state = np.expand_dims(obs, axis=0)
-                print("Observing Game {}".format(nb_games_done + 1))
-        print('Observation done')
+        self.observe_fitness_score.append(best_fitness_score)
 
     def learn_from_replay(self) -> None:
         replay_batch = random.sample(self.memory, self.batch_size)
@@ -136,9 +138,12 @@ class MsPacman():
                 target = reward
             target_f = self.model.predict(state)
             target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1)
+            self.model.fit(state, target_f, epochs=1, verbose=0)
         if self.exploration_rate > self.explotation_rate_min:
             self.exploration_rate *= self.exploration_decay
+
+    def forget(self) -> None:
+        self.memory.clear()
 
     def play(self) -> None:
         obs = self.env.reset()
@@ -153,8 +158,12 @@ class MsPacman():
             obs_new, reward, done, _ = self.env.step(action)
             state = np.expand_dims(obs_new, axis=0)
             tt_reward += reward
-        self.fitness_score.append(tt_reward)
-        print('Game ended! Total reward: {}'.format(tt_reward))
+        self.play_fitness_score.append(tt_reward)
+
+    def draw_fitness_stats(self):
+        plt.plot(self.observe_fitness_score, 'k')
+        plt.plot(self.play_fitness_score, 'r')
+        plt.show()
 
 
 def main():
@@ -177,17 +186,26 @@ def main():
         type=str,
         default='deepmind',
         help='Choose a model between alexnet and deepmind')
+    parser.add_argument(
+        '-i', '--iterations',
+        type=int,
+        action='store',
+        default=10,
+        help='How much time the program will loop'
+    )
     args = parser.parse_args()
     agent = MsPacman(args.model, args.weights, args.render)
     agent.summary()
     # agent.load()
-    for iteration in range(10):
+    for iteration in range(args.iterations):
         print("Iteration {}".format(iteration))
         agent.observe()
         agent.learn_from_replay()
         agent.play()
         # agent.save()
-        # agent.memory.clear()
+        agent.forget()
+    print("Best observed scores : {}".format(agent.observe_fitness_score))
+    print("Play scores          : {}".format(agent.play_fitness_score))
         
 if __name__ == "__main__":
     main()
