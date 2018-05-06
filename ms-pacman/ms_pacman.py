@@ -8,13 +8,12 @@ import argparse
 import datetime
 import numpy as np
 
-
+from collections import deque
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout, LeakyReLU
 from keras.optimizers import Adam, RMSprop
-from collections import deque
+from progressbar import ProgressBar, AdaptiveETA, Bar, SimpleProgress
 
-import tkinter
 import matplotlib.pyplot as plt
 
 import gym
@@ -235,6 +234,10 @@ def main():
         default=0.00025,
         help='Learning rate of the optimizer')
     args = parser.parse_args()
+    bar = ProgressBar(
+        max_value=args.iterations,
+        widgets=['Iteration ', SimpleProgress(), ' ', Bar(), ' ', AdaptiveETA()],
+        redirect_stdout=True)
     agent = MsPacman(
         args.model,
         args.learning_rate,
@@ -245,11 +248,13 @@ def main():
     if args.load:
         agent.load(args.load)
     start_time = datetime.datetime.now()
-    for iteration in range(agent.iterations):
-        print("Iteration {}/{}".format(iteration + 1, agent.iterations))
+    bar.start()
+    for _ in range(agent.iterations):
         agent.observe()
         agent.learn_from_replay()
         agent.play()
+        bar += 1
+    bar.finish()
     end_time = datetime.datetime.now()
     time_execution(start_time, end_time)
     agent.draw_fitness_stats(end_time)
