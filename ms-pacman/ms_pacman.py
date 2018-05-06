@@ -30,8 +30,8 @@ class MsPacman():
         self.batch_size = 32
         self.learning_rate = 0.00025
         self.exploration_rate = 1
-        self.explotation_rate_min = 0.05
-        self.exploration_decay = 0.9
+        self.explotation_rate_min = 0.1
+        self.exploration_decay = 0.997
         self.discount_rate = 0.9
         self.observe_fitness_score = list()
         self.play_fitness_score = list()
@@ -89,15 +89,15 @@ class MsPacman():
             optimizer=RMSprop(lr=self.learning_rate, rho=self.rms_rho, decay=1e-06))
         return model
 
-    def load(self):
-        if os.path.exists(self.weights_file_basename):
-            self.model.load_weights(self.weights_file_basename)
+    def load(self, name: str=None):
+        if os.path.exists(name):
+            self.model.load_weights(name)
             print("Loaded weights file successfully")
         else:
-            print("Weight file '{}' not found".format(self.weights_file_basename))
+            print("Weight file '{}' not found".format(name))
 
     def save(self, curr_time):
-        self.model.save_weights("{}_{}.h5".format(self.weights_file_basename, curr_time))
+        self.model.save_weights("{}_{}_{}.h5".format(self.weights_file_basename, self.iterations, curr_time))
 
     def summary(self) -> None:
         self.model.summary()
@@ -211,7 +211,7 @@ def main():
         help="save the trained weights into a file 'basename+timestamp'.h5")
 
     args = parser.parse_args()
-    agent = MsPacman(args.model, args.weights, args.render, args.iterations)
+    agent = MsPacman(args.model, args.basename, args.render, args.iterations)
     agent.summary()
     if args.load:
         agent.load(args.load)
