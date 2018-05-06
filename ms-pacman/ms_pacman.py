@@ -5,6 +5,7 @@ import os
 import time
 import random
 import argparse
+import datetime
 import numpy as np
 
 from keras.models import Sequential
@@ -12,16 +13,18 @@ from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropo
 from keras.optimizers import Adam, RMSprop
 from collections import deque
 
-import matplotlib.plt as plt
+import tkinter
+import matplotlib.pyplot as plt
 
 import gym
 
 
 class MsPacman():
-    def __init__(self, model: str, weights_fp: str, render: bool):
+    def __init__(self, model: str, weights_file_basename: str, render: bool, iterations: int):
         self.env = gym.make('MsPacman-v0')
-        self.weights_file = weights_fp
+        self.weights_file_basename = weights_file_basename
         self.render = render
+        self.iterations = iterations
         self.memory = deque()
         self.observation_loops = 10
         self.batch_size = 32
@@ -87,14 +90,14 @@ class MsPacman():
         return model
 
     def load(self):
-        if os.path.exists(self.weights_file):
-            self.model.load_weights(self.weights_file)
+        if os.path.exists(self.weights_file_basename):
+            self.model.load_weights(self.weights_file_basename)
             print("Loaded weights file successfully")
         else:
-            print("Weight file '{}' not found".format(self.weights_file))
+            print("Weight file '{}' not found".format(self.weights_file_basename))
 
-    def save(self):
-        self.model.save_weights(self.weights_file)
+    def save(self, curr_time):
+        self.model.save_weights("{}_{}.h5".format(self.weights_file_basename, curr_time))
 
     def summary(self) -> None:
         self.model.summary()
@@ -160,10 +163,13 @@ class MsPacman():
             tt_reward += reward
         self.play_fitness_score.append(tt_reward)
 
-    def draw_fitness_stats(self):
+    def draw_fitness_stats(self, curr_time):
+        plt.xticks(range(self.iterations))
+        plt.xlabel('Nb of Iterations')
+        plt.ylabel('Fitness Score')
         plt.plot(self.observe_fitness_score, 'k')
         plt.plot(self.play_fitness_score, 'r')
-        plt.show()
+        plt.savefig("fitness_{}it_{}".format(self.iterations, curr_time))
 
 
 def main():
@@ -175,11 +181,11 @@ def main():
         action='store_true',
         help='render the graphical environment')
     parser.add_argument(
-        '-w', '--weights',
+        '-b', '--basename',
         action='store',
         type=str,
         help='give a path to the .h5 file to load/save',
-        default='./ms-pacman-w.h5')
+        default='ms-pacman-w')
     parser.add_argument(
         '-m', '--model',
         action='store',
@@ -191,21 +197,36 @@ def main():
         type=int,
         action='store',
         default=10,
-        help='How much time the program will loop'
+        help='How much time the program will loop')
+    parser.add_argument(
+        '-l', '--load',
+        type=str,
+        action='store',
+        default=None,
+        help='Load a weight file'
     )
+    parser.add_argument(
+        "-s", "--save",
+        action='store_true',
+        help="save the trained weights into a file 'basename+timestamp'.h5")
+
     args = parser.parse_args()
-    agent = MsPacman(args.model, args.weights, args.render)
+    agent = MsPacman(args.model, args.weights, args.render, args.iterations)
     agent.summary()
-    # agent.load()
-    for iteration in range(args.iterations):
-        print("Iteration {}".format(iteration))
+    if args.load:
+        agent.load(args.load)
+    for iteration in range(agent.iterations):
+        print("Iteration {}/{}".format(iteration, agent.iterations))
         agent.observe()
         agent.learn_from_replay()
         agent.play()
-        # agent.save()
         agent.forget()
+    time = datetime.datetime.now().strftime("%m%d%H%M%S")
     print("Best observed scores : {}".format(agent.observe_fitness_score))
     print("Play scores          : {}".format(agent.play_fitness_score))
+    agent.draw_fitness_stats(time)
+    if args.save:
+        agent.save(time)
         
 if __name__ == "__main__":
     main()
