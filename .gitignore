@@ -9,3 +9,5 @@ ms-pacman/.vscode/
 
 *.h5
 *.png
+!ms-pacman/docs/*
+
