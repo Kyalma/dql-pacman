@@ -191,7 +191,7 @@ class MsPacman():
         plt.clf()
         plt.yscale('log')
         plt.plot(self.fit_loss, 'b')
-        plt.ylabel('Loss')
+        plt.ylabel('Loss (Mean Absolute Error)')
         plt.xlabel('Iteration')
         plt.savefig("loss_{}it_{}".format(self.iterations, end_time.strftime("%m%d%H%M%S")))
         
