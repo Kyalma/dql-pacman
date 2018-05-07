@@ -156,7 +156,7 @@ class MsPacman():
     def forget(self) -> None:
         self.memory.clear()
 
-    def play(self) -> None:
+    def play(self, slow: bool=False) -> None:
         obs = self.env.reset()
         state = np.expand_dims(obs, axis=0)
         done = False
@@ -169,6 +169,8 @@ class MsPacman():
             obs_new, reward, done, _ = self.env.step(action)
             state = np.expand_dims(obs_new, axis=0)
             tt_reward += reward
+            if slow:
+                time.sleep(0.033)
         self.play_fitness_score.append(tt_reward)
 
     def draw_fitness_stats(self, end_time: datetime.datetime):
@@ -232,6 +234,11 @@ def main():
         action='store',
         default=0.00025,
         help='Learning rate of the optimizer')
+    parser.add_argument(
+        '-p', '--play',
+        action='store_true',
+        help='play only (no learning)'
+    )
     args = parser.parse_args()
     bar = ProgressBar(
         max_value=args.iterations,
@@ -247,9 +254,10 @@ def main():
         agent.load(args.load)
     bar.start()
     for _ in range(agent.iterations):
-        agent.observe()
-        agent.learn_from_replay()
-        agent.play()
+        if not args.play:
+            agent.observe()
+            agent.learn_from_replay()
+        agent.play(True)
         bar += 1
     bar.finish()
     end_time = datetime.datetime.now()
