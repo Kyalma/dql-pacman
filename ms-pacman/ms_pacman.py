@@ -85,7 +85,10 @@ class MsPacman():
         model.add(Dense(5, activation='linear'))
         model.compile(
             loss='mse',
-            optimizer=RMSprop(lr=self.learning_rate, rho=self.rms_rho, decay=1e-06))
+            optimizer=RMSprop(
+                lr=self.learning_rate,
+                rho=self.rms_rho,
+                decay=1e-06))
         return model
 
     def load(self, name: str=None):
@@ -105,7 +108,6 @@ class MsPacman():
         self.model.summary()
 
     def observe(self) -> None:
-        done = True
         nb_games_done = 0
         game_reward = 0
         obs = self.env.reset()
@@ -155,7 +157,7 @@ class MsPacman():
         obs = self.env.reset()
         state = np.expand_dims(obs, axis=0)
         done = False
-        tt_reward = 0.0
+        tt_reward = 0
         while not done:
             if self.render:
                 self.env.render()
