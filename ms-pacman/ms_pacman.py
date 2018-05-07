@@ -182,14 +182,6 @@ class MsPacman():
         plt.savefig("exploration_{}it_{}".format(self.iterations, end_time.strftime("%m%d%H%M%S")))  
 
 
-def time_execution(start: datetime.datetime, end: datetime.datetime):
-    tt_time = end - start
-    hours = tt_time.days * 24 + tt_time.seconds // 3600
-    minutes = (tt_time.seconds % 3600) // 60
-    seconds = tt_time.seconds % 3600
-    mseconds = tt_time.microseconds % 1000
-    print("Execution time: {}h{}m{}.{}s".format(hours, minutes, seconds, mseconds))
-
 def main():
     parser = argparse.ArgumentParser(
         prog='ms_pacman.py',
@@ -198,12 +190,6 @@ def main():
         '-r', '--render',
         action='store_true',
         help='render the graphical environment')
-    # parser.add_argument(
-    #     '-b', '--basename',
-    #     action='store',
-    #     type=str,
-    #     help='give a path to the .h5 file to load/save',
-    #     default='ms-pacman-w')
     parser.add_argument(
         '-m', '--model',
         action='store',
@@ -240,13 +226,11 @@ def main():
     agent = MsPacman(
         args.model,
         args.learning_rate,
-        # args.basename,
         args.render,
         args.iterations)
     agent.summary()
     if args.load:
         agent.load(args.load)
-    # start_time = datetime.datetime.now()
     bar.start()
     for _ in range(agent.iterations):
         agent.observe()
@@ -255,7 +239,6 @@ def main():
         bar += 1
     bar.finish()
     end_time = datetime.datetime.now()
-    # time_execution(start_time, end_time)
     agent.draw_fitness_stats(end_time)
     agent.draw_exploration_decay(end_time)
     if args.save:
