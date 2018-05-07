@@ -37,6 +37,7 @@ class MsPacman():
         self.exploration_hist = list()
         self.observe_fitness_score = list()
         self.play_fitness_score = list()
+        self.fit_loss = list()
         ## Creating the model
         if model == 'deepmind':
             self.model = self._build_deepmind_model()
@@ -137,6 +138,7 @@ class MsPacman():
         self.observe_fitness_score.append(best_fitness_score)
 
     def learn_from_replay(self) -> None:
+        loss = list()
         replay_batch = random.sample(self.memory, self.batch_size)
         for state, action, reward, next_state, done in replay_batch:
             if not done:
@@ -146,7 +148,8 @@ class MsPacman():
                 target = reward
             target_f = self.model.predict(state)
             target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+            loss.append(self.model.fit(state, target_f, epochs=1, verbose=0).history['loss'][0])
+        self.fit_loss.append(np.mean(loss))
         if self.exploration_rate > self.explotation_rate_min:
             self.exploration_rate *= self.exploration_decay
 
@@ -169,6 +172,7 @@ class MsPacman():
         self.play_fitness_score.append(tt_reward)
 
     def draw_fitness_stats(self, end_time: datetime.datetime):
+        plt.clf()
         plt.xlabel('Iteration')
         plt.ylabel('Fitness Score')
         plt.plot(self.observe_fitness_score, 'k')
@@ -181,8 +185,16 @@ class MsPacman():
         plt.plot(self.exploration_hist, 'g')
         plt.ylabel('Exploration rate')
         plt.xlabel('Iteration')
-        plt.savefig("exploration_{}it_{}".format(self.iterations, end_time.strftime("%m%d%H%M%S")))  
+        plt.savefig("exploration_{}it_{}".format(self.iterations, end_time.strftime("%m%d%H%M%S")))
 
+    def draw_loss(self, end_time: datetime.datetime):
+        plt.clf()
+        plt.yscale('log')
+        plt.plot(self.fit_loss, 'b')
+        plt.ylabel('Loss')
+        plt.xlabel('Iteration')
+        plt.savefig("loss_{}it_{}".format(self.iterations, end_time.strftime("%m%d%H%M%S")))
+        
 
 def main():
     parser = argparse.ArgumentParser(
@@ -243,6 +255,7 @@ def main():
     end_time = datetime.datetime.now()
     agent.draw_fitness_stats(end_time)
     agent.draw_exploration_decay(end_time)
+    agent.draw_loss(end_time)
     if args.save:
         agent.save(end_time)
         
