@@ -10,7 +10,7 @@ import numpy as np
 
 from collections import deque
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout, LeakyReLU
+from keras.layers import Dense, Conv2D, Activation, Flatten, MaxPooling2D, Dropout
 from keras.optimizers import Adam, RMSprop
 from progressbar import ProgressBar, AdaptiveETA, Bar, SimpleProgress
 
