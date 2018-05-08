@@ -20,7 +20,7 @@ import gym
 
 
 class MsPacman():
-    def __init__(self, model: str, learning_rate: float, render: bool, iterations: int):
+    def __init__(self, model: str, learning_rate: float, exploration, render: bool, iterations: int):
         self.env = gym.make('MsPacman-v0')
         self.weights_file_basename = 'w_mspacman'
         self.render = render
@@ -31,9 +31,9 @@ class MsPacman():
         self.learning_rate = learning_rate
         self.discount_rate = 0.9
         self.rms_rho = 0.95
-        self.exploration_rate = 1
-        self.explotation_rate_min = 0.1
-        self.exploration_decay = 0.95
+        self.exploration_rate = exploration[0]
+        self.explotation_rate_min = exploration[1]
+        self.exploration_decay = exploration[2]
         self.exploration_hist = list()
         self.observe_fitness_score = list()
         self.play_fitness_score = list()
@@ -235,10 +235,17 @@ def main():
         default=0.00025,
         help='Learning rate of the optimizer')
     parser.add_argument(
+        '-e', '--exploration',
+        nargs=3,
+        type=float,
+        metavar=['START', 'MIN', 'DECAY'],
+        action='store',
+        default=(1.0, 0.1, 0.995),
+        help="exploration rate starting value, minimum value, decay")
+    parser.add_argument(
         '-p', '--play',
         action='store_true',
-        help='play only (no learning)'
-    )
+        help='play only (no learning)')
     args = parser.parse_args()
     bar = ProgressBar(
         max_value=args.iterations,
@@ -247,6 +254,7 @@ def main():
     agent = MsPacman(
         args.model,
         args.learning_rate,
+        args.exploration,
         args.render,
         args.iterations)
     agent.summary()
