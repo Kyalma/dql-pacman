@@ -7,7 +7,7 @@
 *.sln
 ms-pacman/.vscode/
 
-!ms-pacman/weights/*
+!ms-pacman/weights/*.h5
 *.h5
 *.png
 !ms-pacman/docs/*
