@@ -260,12 +260,16 @@ def main():
     agent.summary()
     if args.load:
         agent.load(args.load)
+    if args.play:
+        agent.play(True)
+        print("Score: {}".format(agent.play_fitness_score[0]))
+        input("Press enter key to end...")
+        return
     bar.start()
     for _ in range(agent.iterations):
-        if not args.play:
-            agent.observe()
-            agent.learn_from_replay()
-        agent.play(True)
+        agent.observe()
+        agent.learn_from_replay()
+        agent.play()
         bar += 1
     bar.finish()
     end_time = datetime.datetime.now()
