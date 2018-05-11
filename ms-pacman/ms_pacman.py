@@ -25,7 +25,7 @@ class MsPacman():
         self.weights_file_basename = 'w_mspacman'
         self.render = render
         self.iterations = iterations
-        self.memory = deque(maxlen=100000)
+        self.memory = deque(maxlen=50000)
         self.observation_loops = 10
         self.batch_size = 32
         self.learning_rate = learning_rate
