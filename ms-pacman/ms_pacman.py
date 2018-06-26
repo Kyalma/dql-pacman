@@ -19,9 +19,13 @@ import matplotlib.pyplot as plt
 import gym
 
 
-class MsPacman():
+class GameEnvironment():
+    def __init__(self, env_name: str):
+        self.env = gym.make(env_name)
+
+class MsPacman(GameEnvironment):
     def __init__(self, model: str, learning_rate: float, exploration, render: bool, iterations: int):
-        self.env = gym.make('MsPacman-v0')
+        GameEnvironment('MsPacman-v0')
         self.weights_file_basename = 'w_mspacman'
         self.render = render
         self.iterations = iterations

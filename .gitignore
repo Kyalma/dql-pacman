@@ -12,3 +12,4 @@ ms-pacman/.vscode/
 *.png
 !ms-pacman/docs/*
 
+/.vs
