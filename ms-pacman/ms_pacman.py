@@ -15,9 +15,11 @@ from keras.optimizers import Adam, RMSprop
 from progressbar import ProgressBar, AdaptiveETA, Bar, SimpleProgress
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 import gym
 
+FRAME_CUT = 171
 
 class MsPacman():
     def __init__(self, model: str, learning_rate: float, exploration, render: bool, iterations: int):
@@ -76,9 +78,13 @@ class MsPacman():
 
     def _build_deepmind_model(self):
         model = Sequential()
-        model.add(Conv2D(32, (8, 8), strides=4,
+        # model.add(Conv2D(32, (8, 8), strides=4,
+        #     input_shape=self.env.observation_space.shape,
+        #     activation='relu'))
+        model.add(Conv2D(1, (1, 1), strides=1,
             input_shape=self.env.observation_space.shape,
             activation='relu'))
+        model.add(Conv2D(32, (8, 8), strides=4, activation='relu'))
         model.add(Conv2D(64, (4, 4), strides=2, activation='relu'))
         model.add(Conv2D(64, (4, 4), strides=1, activation='relu'))
         model.add(Flatten())    # Important to have a 1D output
@@ -89,7 +95,7 @@ class MsPacman():
             optimizer=RMSprop(
                 lr=self.learning_rate,
                 rho=self.rms_rho,
-                decay=1e-06))
+                decay=0))
         return model
 
     def load(self, name: str=None):
@@ -114,6 +120,7 @@ class MsPacman():
         obs = self.env.reset()
         state = np.expand_dims(obs, axis=0)
         best_fitness_score = 0
+        average_fitness_score = 0
         self.exploration_hist.append(self.exploration_rate)
         while nb_games_done < self.observation_loops:
             if self.render:
@@ -130,22 +137,23 @@ class MsPacman():
             state = state_new                                               # Update state
             if done:
                 nb_games_done += 1
+                average_fitness_score += game_reward
                 if game_reward > best_fitness_score:
                     best_fitness_score = game_reward
                 game_reward = 0
                 obs = self.env.reset()                                      # Restart the game
                 state = np.expand_dims(obs, axis=0)
-        self.observe_fitness_score.append(best_fitness_score)
+        average_fitness_score /= self.observation_loops
+        self.observe_fitness_score.append(average_fitness_score)
+        # self.observe_fitness_score.append(best_fitness_score)
 
     def learn_from_replay(self) -> None:
         loss = list()
         replay_batch = random.sample(self.memory, self.batch_size)
         for state, action, reward, next_state, done in replay_batch:
+            target = reward
             if not done:
-                optimal_future_value = np.amax(self.model.predict(next_state)[0])
-                target = reward + self.discount_rate * optimal_future_value
-            else:
-                target = reward
+                target += reward + self.discount_rate * np.amax(self.model.predict(next_state)[0])
             target_f = self.model.predict(state)
             target_f[0][action] = target
             loss.append(self.model.fit(state, target_f, epochs=1, verbose=0).history['loss'][0])
@@ -175,6 +183,9 @@ class MsPacman():
 
     def draw_fitness_stats(self, end_time: datetime.datetime):
         plt.clf()
+        dql_patch = mpatches.Patch(color='red', label='DQL Agent')
+        r_patch = mpatches.Patch(color='black', label='Average Random Agent')
+        plt.legend(handles=[dql_patch, r_patch])
         plt.xlabel('Iteration')
         plt.ylabel('Fitness Score')
         plt.plot(self.observe_fitness_score, 'k')
@@ -263,7 +274,6 @@ def main():
     if args.play:
         agent.play(True)
         print("Score: {}".format(agent.play_fitness_score[0]))
-        input("Press enter key to end...")
         return
     bar.start()
     for _ in range(agent.iterations):
