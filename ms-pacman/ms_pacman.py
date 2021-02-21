@@ -27,7 +27,7 @@ class GameEnvironment():
 
 class MsPacman(GameEnvironment):
     def __init__(self, model: str, learning_rate: float, exploration, render: bool, iterations: int):
-        GameEnvironment('MsPacman-v0')
+        super().__init__('MsPacman-v0')
         self.weights_file_basename = 'w_mspacman'
         self.render = render
         self.iterations = iterations
